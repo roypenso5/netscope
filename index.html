@@ -1,0 +1,660 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#090d18">
+  <meta name="description" content="A real-time public IP and network information dashboard.">
+  <title>NetScope — Connection Dashboard</title>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090d18;
+      --panel: #111827;
+      --panel-2: #151f31;
+      --border: #263249;
+      --text: #f1f5ff;
+      --muted: #91a0b9;
+      --accent: #70a5ff;
+      --green: #54e6ad;
+      --red: #ff7889;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 32px 18px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(ellipse at 50% 0%, #17284b 0%, transparent 48%),
+        var(--bg);
+      color: var(--text);
+      font: 15px/1.5 system-ui, -apple-system, sans-serif;
+    }
+
+    button { font: inherit; }
+
+    .dashboard {
+      width: min(100%, 850px);
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      display: grid;
+      place-items: center;
+      width: 46px;
+      height: 46px;
+      border: 1px solid #38537d;
+      border-radius: 14px;
+      background: #172746;
+      color: var(--accent);
+      font-size: 24px;
+    }
+
+    h1, h2, p { margin-top: 0; }
+
+    h1 {
+      margin-bottom: 2px;
+      font-size: 22px;
+      letter-spacing: -0.7px;
+    }
+
+    .subtitle, .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+
+    .dot.online {
+      background: var(--green);
+      box-shadow: 0 0 12px #54e6ad66;
+    }
+
+    .dot.error { background: var(--red); }
+
+    .hero {
+      padding: 28px;
+      margin-bottom: 18px;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: linear-gradient(135deg, #17233a, #111827 75%);
+      box-shadow: 0 18px 60px #00000024;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .ip-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 12px 0;
+    }
+
+    .ip {
+      overflow-wrap: anywhere;
+      font-size: clamp(23px, 5vw, 39px);
+      font-weight: 750;
+      letter-spacing: -1.2px;
+    }
+
+    .button {
+      cursor: pointer;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      background: var(--panel-2);
+      color: var(--text);
+      transition: border-color .2s, transform .2s;
+    }
+
+    .button:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    .button:disabled {
+      cursor: wait;
+      opacity: .55;
+      transform: none;
+    }
+
+    .hero-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      min-width: 0;
+      padding: 21px;
+      border: 1px solid var(--border);
+      border-radius: 17px;
+      background: var(--panel);
+      transition: border-color .2s;
+    }
+
+    .card:hover { border-color: #405373; }
+
+    .card-heading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 17px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .card-icon {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: #1c2b45;
+      color: var(--accent);
+      font-size: 17px;
+    }
+
+    .field + .field {
+      margin-top: 16px;
+    }
+
+    .label {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .value {
+      overflow-wrap: anywhere;
+      font-size: 16px;
+      font-weight: 650;
+    }
+
+    .footer {
+      margin-top: 22px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .notice {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      background: #101827;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .notice strong { color: var(--text); }
+
+    .error-box {
+      margin-top: 16px;
+      padding: 16px;
+      border: 1px solid #743b4a;
+      border-radius: 12px;
+      background: #301a27;
+      color: #ffc3cc;
+    }
+
+    [hidden] { display: none !important; }
+
+    .loading {
+      display: inline-block;
+      width: 13px;
+      height: 13px;
+      border: 2px solid #ffffff35;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: -2px;
+    }
+
+    .skeleton {
+      color: transparent;
+      border-radius: 5px;
+      background: #263249;
+      animation: pulse 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      to { opacity: .45; }
+    }
+
+    @media (max-width: 540px) {
+      body { padding: 20px 13px; }
+      .topbar { align-items: flex-start; }
+      .status { padding: 7px 9px; }
+      .hero { padding: 21px; }
+      .grid { grid-template-columns: 1fr; }
+      .ip-row { align-items: flex-start; flex-direction: column; }
+      .hero-bottom { align-items: flex-start; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="dashboard">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">⌁</div>
+        <div>
+          <h1>NetScope</h1>
+          <div class="subtitle">Connection intelligence</div>
+        </div>
+      </div>
+
+      <div class="status" role="status" aria-live="polite">
+        <span class="dot" id="status-dot"></span>
+        <span id="status-text">Connecting</span>
+      </div>
+    </header>
+
+    <section class="hero" aria-labelledby="ip-heading">
+      <div class="eyebrow" id="ip-heading">Public IP address</div>
+
+      <div class="ip-row">
+        <div class="ip" id="ip" aria-live="polite">Loading...</div>
+        <button class="button" id="copy-btn" disabled>
+          Copy IP
+        </button>
+      </div>
+
+      <p class="muted" id="ip-description">
+        Retrieving your public network information...
+      </p>
+
+      <div class="hero-bottom">
+        <div>
+          <div class="label">Connection location</div>
+          <div class="value" id="location">—</div>
+        </div>
+        <button class="button" id="refresh-btn">
+          ↻ Refresh data
+        </button>
+      </div>
+    </section>
+
+    <section class="grid" aria-label="Connection details">
+      <article class="card">
+        <div class="card-heading">
+          <span class="card-icon" aria-hidden="true">◎</span>
+          Location details
+        </div>
+        <div class="field">
+          <span class="label">City</span>
+          <div class="value" id="city">—</div>
+        </div>
+        <div class="field">
+          <span class="label">Region / State</span>
+          <div class="value" id="region">—</div>
+        </div>
+        <div class="field">
+          <span class="label">Country</span>
+          <div class="value" id="country">—</div>
+        </div>
+        <div class="field">
+          <span class="label">Postal code</span>
+          <div class="value" id="postal">—</div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-heading">
+          <span class="card-icon" aria-hidden="true">⌘</span>
+          Network provider
+        </div>
+        <div class="field">
+          <span class="label">ISP / Organization</span>
+          <div class="value" id="org">—</div>
+        </div>
+        <div class="field">
+          <span class="label">Network / ASN</span>
+          <div class="value" id="asn">—</div>
+        </div>
+        <div class="field">
+          <span class="label">IP version</span>
+          <div class="value" id="version">—</div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-heading">
+          <span class="card-icon" aria-hidden="true">◷</span>
+          Regional settings
+        </div>
+        <div class="field">
+          <span class="label">Time zone</span>
+          <div class="value" id="timezone">—</div>
+        </div>
+        <div class="field">
+          <span class="label">UTC offset</span>
+          <div class="value" id="offset">—</div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-heading">
+          <span class="card-icon" aria-hidden="true">◇</span>
+          Data status
+        </div>
+        <div class="field">
+          <span class="label">Data source</span>
+          <div class="value" id="source">Waiting</div>
+        </div>
+        <div class="field">
+          <span class="label">Last updated</span>
+          <div class="value" id="updated">—</div>
+        </div>
+        <div class="field">
+          <span class="label">Lookup status</span>
+          <div class="value" id="result-status">Pending</div>
+        </div>
+      </article>
+    </section>
+
+    <div class="error-box" id="error-box" role="alert" hidden>
+      <strong>Couldn't retrieve your information.</strong>
+      <p id="error-text">Check your connection and try again.</p>
+    </div>
+
+    <aside class="notice">
+      <strong>Privacy note:</strong> This page requests public IP information
+      from an external geolocation provider. Location is approximate, and
+      your VPN or proxy may affect the results. No GPS permission is requested.
+      Your browser communicates directly with the selected API provider.
+    </aside>
+
+    <footer class="footer">
+      NetScope · Public IP diagnostics · No account required
+    </footer>
+  </main>
+
+  <script>
+    "use strict";
+
+    const $ = (id) => document.getElementById(id);
+
+    const fields = [
+      "ip", "city", "region", "country", "postal",
+      "org", "asn", "version", "timezone", "offset"
+    ];
+
+    let activeController = null;
+    let requestNumber = 0;
+    let currentIP = "";
+
+    function setStatus(message, state = "loading") {
+      $("status-text").textContent = message;
+      $("status-dot").className =
+        "dot" +
+        (state === "online" ? " online" :
+         state === "error" ? " error" : "");
+    }
+
+    function setValue(id, value) {
+      // textContent prevents returned API data from being interpreted as HTML.
+      $(id).textContent =
+        value === null || value === undefined || value === ""
+          ? "Unavailable"
+          : String(value);
+    }
+
+    function normalizeIPAPI(data) {
+      return {
+        ip: data.ip,
+        city: data.city,
+        region: data.region,
+        country: data.country_name,
+        postal: data.postal,
+        org: data.org,
+        asn: data.asn,
+        version: data.version,
+        timezone: data.timezone,
+        offset: data.utc_offset
+      };
+    }
+
+    function normalizeIPWho(data) {
+      if (!data.success) throw new Error("Location lookup failed");
+
+      return {
+        ip: data.ip,
+        city: data.city,
+        region: data.region,
+        country: data.country,
+        postal: data.postal,
+        org: data.connection?.isp,
+        asn: data.connection?.asn
+          ? "AS" + data.connection.asn
+          : null,
+        version: data.type,
+        timezone: data.timezone?.id,
+        offset: data.timezone?.utc
+      };
+    }
+
+    async function fetchJSON(url, signal) {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: { "Accept": "application/json" },
+        signal,
+        cache: "no-store"
+      });
+
+      if (!response.ok) {
+        throw new Error("Service returned HTTP " + response.status);
+      }
+
+      return response.json();
+    }
+
+    async function getData(signal) {
+      const providers = [
+        {
+          name: "ipapi.co",
+          url: "https://ipapi.co/json/",
+          normalize: normalizeIPAPI
+        },
+        {
+          name: "ipwho.is",
+          url: "https://ipwho.is/",
+          normalize: normalizeIPWho
+        }
+      ];
+
+      const errors = [];
+
+      for (const provider of providers) {
+        if (signal.aborted) throw new Error("Request cancelled");
+
+        try {
+          const raw = await fetchJSON(provider.url, signal);
+          const data = provider.normalize(raw);
+
+          if (!data.ip) {
+            throw new Error("No IP address returned");
+          }
+
+          return { data, provider: provider.name };
+        } catch (error) {
+          if (signal.aborted) throw error;
+          errors.push(provider.name + ": " + error.message);
+        }
+      }
+
+      throw new Error(errors.join("; "));
+    }
+
+    function updateUI(data, provider) {
+      fields.forEach((field) => setValue(field, data[field]));
+
+      const location = [data.city, data.country]
+        .filter(Boolean)
+        .join(", ");
+
+      setValue("location", location || "Unavailable");
+      setValue("source", provider);
+      setValue("updated", new Date().toLocaleTimeString());
+      setValue("result-status", "Successful");
+
+      currentIP = data.ip;
+      $("copy-btn").disabled = false;
+      $("ip-description").textContent =
+        "Your public IP as seen by the lookup service.";
+      $("error-box").hidden = true;
+      setStatus("Connected", "online");
+    }
+
+    async function refresh() {
+      const myRequest = ++requestNumber;
+
+      if (activeController) activeController.abort();
+
+      const controller = new AbortController();
+      activeController = controller;
+
+      const timeout = setTimeout(
+        () => controller.abort(),
+        12000
+      );
+
+      $("refresh-btn").disabled = true;
+      $("refresh-btn").innerHTML =
+        '<span class="loading" aria-hidden="true"></span> Loading';
+      $("error-box").hidden = true;
+      $("result-status").textContent = "In progress";
+      setStatus("Connecting");
+
+      if (!currentIP) {
+        $("ip").textContent = "Loading...";
+        $("copy-btn").disabled = true;
+      }
+
+      try {
+        const result = await getData(controller.signal);
+
+        if (myRequest !== requestNumber) return;
+
+        updateUI(result.data, result.provider);
+      } catch (error) {
+        if (myRequest !== requestNumber) return;
+
+        setStatus("Unavailable", "error");
+        setValue("result-status", "Failed");
+        $("error-box").hidden = false;
+
+        $("error-text").textContent =
+          controller.signal.aborted
+            ? "The request timed out or was cancelled. Check your connection and retry."
+            : "The lookup services could not return data. Your network may block these requests, or the services may be temporarily unavailable.";
+
+        if (!currentIP) {
+          $("ip").textContent = "Unavailable";
+          $("location").textContent = "Unavailable";
+        }
+      } finally {
+        clearTimeout(timeout);
+
+        if (myRequest === requestNumber) {
+          $("refresh-btn").disabled = false;
+          $("refresh-btn").textContent = "↻ Refresh data";
+          activeController = null;
+        }
+      }
+    }
+
+    $("refresh-btn").addEventListener("click", refresh);
+
+    $("copy-btn").addEventListener("click", async () => {
+      if (!currentIP) return;
+
+      try {
+        await navigator.clipboard.writeText(currentIP);
+        $("copy-btn").textContent = "Copied!";
+        setTimeout(() => {
+          $("copy-btn").textContent = "Copy IP";
+        }, 1500);
+      } catch {
+        $("copy-btn").textContent = "Copy unavailable";
+      }
+    });
+
+    refresh();
+  </script>
+</body>
+</html>
